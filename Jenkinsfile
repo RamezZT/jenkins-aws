@@ -22,7 +22,9 @@ pipeline {
         stage("deploy") {
             steps {
                 script {
-                    echo "Deploying the application..."
+                    sshagent(['ec2-server-key']) {
+                        sh 'ssh -o StrictHostKeyChecking=no ec2-user@13.49.49.229'
+}
                 }
             }
         }               
