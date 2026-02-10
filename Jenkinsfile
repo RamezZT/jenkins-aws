@@ -7,7 +7,7 @@ library identifier: 'jenkinsGroovyshit@main', retriever: modernSCM(
     ]
 )
 
-pipeline {
+pipeline {   
     agent any
     tools {
         maven 'Maven'
