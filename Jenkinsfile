@@ -1,33 +1,74 @@
-#!/usr/bin.env groovy
+#!/usr/bin/env groovy
+
+library identifier: 'jenkinsGroovyshit@main', retriever: modernSCM(
+    [$class: 'GitSCMSource',
+    remote: 'https://github.com/RamezZT/jenkinsGroovyshit.git',
+    ]
+)
 
 pipeline {   
     agent any
+    tools {
+        maven 'Maven'
+    }
     stages {
-        stage("test") {
+        stage('increment version') {
             steps {
                 script {
-                    echo "Testing the application..."
-
+                    echo 'incrementing app version...'
+                    sh 'mvn build-helper:parse-version versions:set \
+                        -DnewVersion=\\\${parsedVersion.majorVersion}.\\\${parsedVersion.minorVersion}.\\\${parsedVersion.nextIncrementalVersion} \
+                        versions:commit'
+                    def matcher = readFile('pom.xml') =~ '<version>(.+)</version>'
+                    def version = matcher[0][1]
+                    env.IMAGE_NAME = "ramezzt/java-maven-app:${version}-${BUILD_NUMBER}"
                 }
             }
         }
-        stage("build") {
+        stage('build app') {
             steps {
-                script {
-                    echo "Building the application..."
-                }
+                echo 'building application jar...'
+                buildJar()
             }
         }
-
+        stage('build image') {
+            steps {
+                script {
+                    sh 'ls -R target/'
+                    echo 'building the docker image...'
+                    buildImage(env.IMAGE_NAME)
+                    dockerLogin()
+                    dockerPush(env.IMAGE_NAME)
+                }
+            }
+        } 
         stage("deploy") {
             steps {
                 script {
-                    def dockerCmd = 'docker run -p 8080:8080 -d ramezzt/maze:v1.0'
+                    echo 'deploying docker image to EC2...'
+
+                    def shellCmd = "bash ./server-cmds.sh ${IMAGE_NAME}"
+                    def ec2Instance = "ec2-user@13.53.167.93"
+
                     sshagent(['ec2-server-key']) {
-                        sh "ssh -o StrictHostKeyChecking=no ec2-user@16.171.14.100  ${dockerCmd}"
-}
+                        sh "scp server-cmds.sh ${ec2Instance}:/home/ec2-user"
+                        sh "scp docker-compose.yaml ${ec2Instance}:/home/ec2-user"
+                        sh "ssh -o StrictHostKeyChecking=no ${ec2Instance} ${shellCmd}"
+                    }
+                }
+            }               
+        }
+        stage('commit version update'){
+            steps {
+                script {
+                    withCredentials([usernamePassword(credentialsId: 'gitlab-credentials', passwordVariable: 'PASS', usernameVariable: 'USER')]){
+                        sh 'git remote set-url origin https://$USER:$PASS@gitlab.com/twn-devops-bootcamp/latest/09-AWS/java-maven-app.git'
+                        sh 'git add .'
+                        sh 'git commit -m "ci: version bump"'
+                        sh 'git push origin HEAD:jenkins-jobs'
+                    }
                 }
             }
-        }               
+        }
     }
-} 
+}
