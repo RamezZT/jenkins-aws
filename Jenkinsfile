@@ -62,12 +62,17 @@ pipeline {
         stage('commit version update'){
             steps {
                 script {
-                    withCredentials([usernamePassword(credentialsId: 'gitlab-credentials', passwordVariable: 'PASS', usernameVariable: 'USER')]){
-                        sh 'git remote set-url origin https://$USER:$PASS@gitlab.com/twn-devops-bootcamp/latest/09-AWS/java-maven-app.git'
-                        sh 'git add .'
-                        sh 'git commit -m "ci: version bump"'
-                        sh 'git push origin HEAD:jenkins-jobs'
-                    }
+withCredentials([usernamePassword(credentialsId: 'a8dac5b2-6434-4ef6-8f90-1bf40789f8b3', passwordVariable: 'PASS', usernameVariable: 'USER')]) {
+    sh """
+        git remote set-url origin https://RamezZT:${PASS}@github.com/RamezZT/jenkins-aws.git
+    """    
+sh 'git config --global user.name "Jenkins"'
+sh 'git config --global user.email "jenkins@ci"'
+
+    sh 'git add .'
+    sh 'git commit -m "ci: version bump [skip ci]"'
+    sh 'git push origin HEAD:main'
+}
                 }
             }
         }
