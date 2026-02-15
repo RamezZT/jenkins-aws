@@ -1,5 +1,6 @@
 #!/usr/bin/env groovy
 
+
 library identifier: 'jenkinsGroovyshit@main', retriever: modernSCM(
     [$class: 'GitSCMSource',
     remote: 'https://github.com/RamezZT/jenkinsGroovyshit.git',
@@ -48,7 +49,7 @@ pipeline {
                     echo 'deploying docker image to EC2...'
 
                     def shellCmd = "bash ./server-cmds.sh ${IMAGE_NAME}"
-                    def ec2Instance = "ec2-user@18.198.2.27"
+                    def ec2Instance = "ec2-user@13.61.23.174"
 
                     sshagent(['ec2-server-key']) {
                         sh "scp server-cmds.sh ${ec2Instance}:/home/ec2-user"
